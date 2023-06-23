@@ -1,6 +1,8 @@
 use log::*;
 use twilight_gateway::{Intents, Shard, ShardId};
 
+mod model;
+
 #[tokio::main]
 async fn main() {
     simple_logger::init_with_level(log::Level::Debug).unwrap();
