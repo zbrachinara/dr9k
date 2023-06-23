@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use anyhow::anyhow;
 use chrono::Utc;
 use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
@@ -48,16 +49,18 @@ struct GuildInfo {
 impl MessageModel {
     /// Attempt to insert the message into this model. Will return an error if the message does not
     /// comply with previous messages, otherwise will return `Ok`
-    pub fn insert_message(&mut self, message: &Message) -> Result<MessageAccepted, MessageRejected> {
+    pub fn insert_message(
+        &mut self,
+        message: &Message,
+    ) -> Result<MessageAccepted, MessageRejected> {
         let Some(guild_id) = message.guild_id else {return Ok(MessageAccepted::NotInGuild)};
         let guild_info = self.guilds.entry(guild_id).or_default();
 
-        if !message.attachments.is_empty()
-        {
+        if !message.attachments.is_empty() {
             return Ok(MessageAccepted::HasAttachment);
         }
         if !guild_info.monitored_channels.contains(&message.channel_id) {
-            return Ok(MessageAccepted::NotMonitored)
+            return Ok(MessageAccepted::NotMonitored);
         }
 
         let content = message.content.clone();
@@ -70,6 +73,16 @@ impl MessageModel {
             Err(MessageRejected::Text)
         } else {
             Ok(MessageAccepted::Nominal)
+        }
+    }
+
+    pub fn toggle_monitor(&mut self, guild: Id<GuildMarker>, channel: Id<ChannelMarker>) -> bool {
+        let guild_info = self.guilds.entry(guild).or_default();
+        if guild_info.monitored_channels.remove(&channel) {
+            true
+        } else {
+            guild_info.monitored_channels.insert(channel);
+            false
         }
     }
 }
