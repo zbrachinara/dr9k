@@ -7,11 +7,19 @@ use twilight_model::id::Id;
 
 #[derive(Debug)]
 pub enum MessageRejected {
-    Text
+    Text,
 }
 
 struct MessageMeta {
     timestamp: i64,
+}
+
+impl<'a> From<&'a Message> for MessageMeta {
+    fn from(value: &'a Message) -> Self {
+        Self {
+            timestamp: value.timestamp.as_micros(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -27,15 +35,7 @@ impl MessageModel {
         let Some(guild_id) = message.guild_id else {return Ok(())}; // this is not from a guild, no reason to reject
         let guild_messages = self.guilds.entry(guild_id).or_default();
 
-        if guild_messages
-            .insert(
-                content,
-                MessageMeta {
-                    timestamp: message.timestamp.as_micros(),
-                },
-            )
-            .is_some()
-        {
+        if guild_messages.insert(content, message.into()).is_some() {
             Err(MessageRejected::Text)
         } else {
             Ok(())
