@@ -25,7 +25,12 @@ mod data_file {
 }
 
 pub use data_file::get_data_dir;
+use tap::Tap;
 
-pub fn assure_file(path: &Path) -> io::Result<File> {
-    OpenOptions::new().create(true).read(true).write(true).open(path)
+pub fn data_file(path: &Path) -> io::Result<File> {
+    OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(get_data_dir().tap_mut(|d| d.push(path)))
 }
