@@ -1,10 +1,9 @@
-use twilight_http::{client::InteractionClient, Client};
 use twilight_model::{
     application::command::{Command, CommandType},
     id::{marker::GuildMarker, Id},
 };
 
-use crate::{get_client, APP_ID};
+use crate::{get_client, get_interaction_client};
 
 fn monitor_command() -> Command {
     Command {
@@ -24,21 +23,17 @@ fn monitor_command() -> Command {
     }
 }
 
-pub async fn init_commands_for_guild<'a>(
-    interaction_builder: &InteractionClient<'a>,
-    guild: Id<GuildMarker>,
-) {
-    let _ = interaction_builder
+pub async fn init_commands_for_guild<'a>(guild: Id<GuildMarker>) {
+    let _ = get_interaction_client()
         .set_guild_commands(guild, &[monitor_command()])
         .await;
 }
 
-pub async fn init_commands(client: &Client) {
-    let interaction_builder = client.interaction(APP_ID);
+pub async fn init_commands() {
     if let Ok(list) = get_client().current_user_guilds().await {
         if let Ok(guilds) = list.model().await {
             for guild in guilds {
-                init_commands_for_guild(&interaction_builder, guild.id).await;
+                init_commands_for_guild(guild.id).await;
             }
         }
     }

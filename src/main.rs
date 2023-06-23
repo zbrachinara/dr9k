@@ -2,7 +2,7 @@ use std::sync::OnceLock;
 
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
-use twilight_http::Client;
+use twilight_http::{Client, client::InteractionClient};
 use twilight_model::{application::interaction::InteractionData, id::{Id, marker::ApplicationMarker}};
 
 use crate::model::MessageModel;
@@ -16,6 +16,10 @@ pub(crate) fn get_client() -> &'static Client {
     CLIENT
         .get()
         .expect("Client was requested before client was initialized -- contact developer")
+}
+
+pub(crate) fn get_interaction_client() -> InteractionClient<'static> {
+    get_client().interaction(APP_ID)
 }
 
 pub(crate) const APP_ID: Id<ApplicationMarker> = {
@@ -38,7 +42,7 @@ async fn main() {
         .set(Client::new(token.to_string()))
         .expect("Could not initialize http client to Discord.");
 
-    command::init_commands(get_client()).await;
+    command::init_commands().await;
 
     loop {
         let event = match shard.next_event().await {
