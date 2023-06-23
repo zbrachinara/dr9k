@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::anyhow;
-use chrono::Utc;
+
 use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 use twilight_model::id::Id;
@@ -19,6 +18,8 @@ pub enum MessageAccepted {
     HasAttachment,
     /// The message was sent in a guild, but not in a monitored channel
     NotMonitored,
+    /// The message is sent by a bot, so we don't care too much
+    Bot,
     /// The message is accepted by the r9k system
     Nominal,
 }
@@ -61,6 +62,9 @@ impl MessageModel {
         }
         if !guild_info.monitored_channels.contains(&message.channel_id) {
             return Ok(MessageAccepted::NotMonitored);
+        }
+        if message.author.bot {
+            return Ok(MessageAccepted::Bot)
         }
 
         let content = message.content.clone();
