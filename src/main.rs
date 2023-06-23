@@ -46,6 +46,7 @@ async fn main() {
             }
         };
 
+        debug!("{event:?}");
         #[allow(clippy::single_match)]
         match event {
             Event::MessageCreate(c) => {
@@ -60,6 +61,17 @@ async fn main() {
                             error!("Failure in deleting repeated message:\n{e}");
                         }
                     });
+                }
+            }
+            Event::InteractionCreate(interaction) => {
+                if_chain::if_chain! {
+                    if let Some(ref guild) = interaction.guild_id;
+                    if let Some(ref channel) = interaction.channel;
+                    then {
+
+                    } else {
+
+                    }
                 }
             }
             _ => {}
