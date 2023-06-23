@@ -2,8 +2,13 @@ use std::sync::OnceLock;
 
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
-use twilight_http::{Client, client::InteractionClient};
-use twilight_model::{application::interaction::InteractionData, id::{Id, marker::ApplicationMarker}};
+use twilight_http::{client::InteractionClient, Client};
+use twilight_model::{
+    application::interaction::InteractionData,
+    http::interaction::{InteractionResponse, InteractionResponseType},
+    id::{marker::ApplicationMarker, Id},
+};
+use twilight_util::builder::InteractionResponseDataBuilder as IRDB;
 
 use crate::model::MessageModel;
 
@@ -79,17 +84,36 @@ async fn main() {
                 }
             }
             Event::InteractionCreate(interaction) => {
-                if_chain::if_chain! {
+                let (guild, channel) = if_chain::if_chain! {
                     if let Some(InteractionData::ApplicationCommand(ref command)) = interaction.data;
                     if command.name == "monitor";
                     if let Some(ref guild) = interaction.guild_id;
                     if let Some(ref channel) = interaction.channel;
                     then {
-                        debug!("Interaction message received!: from {guild}:{}", channel.id)
+                        (guild, channel)
                     } else {
                         continue;
                     }
-                }
+                };
+
+                let _ = get_interaction_client()
+                    .create_response(
+                        interaction.id,
+                        &interaction.token,
+                        &InteractionResponse {
+                            kind: InteractionResponseType::ChannelMessageWithSource,
+                            data: Some(
+                                IRDB::new()
+                                    .content(if model.toggle_monitor(*guild, channel.id) {
+                                        "Stopping monitoring of this channel"
+                                    } else {
+                                        "Beginning to monitor this channel"
+                                    })
+                                    .build(),
+                            ),
+                        },
+                    )
+                    .await;
             }
             _ => {}
         }
