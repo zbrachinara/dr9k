@@ -1,4 +1,6 @@
 #[tokio::main]
 async fn main() {
-    println!("Hello, world!");
+    let secrets_file = include_bytes!("../conf.properties");
+    let secrets = java_properties::read(secrets_file.as_slice()).unwrap();
+    println!("{secrets:?}");
 }

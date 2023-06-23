@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 twilight-gateway = "0.15"
 tokio = {version = "1.28", features = ["rt-multi-thread", "macros"]}
+java-properties = "2.0"
