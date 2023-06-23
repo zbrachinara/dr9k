@@ -1,5 +1,6 @@
 use log::*;
-use twilight_gateway::{Intents, Shard, ShardId, Event};
+use twilight_gateway::{Event, Intents, Shard, ShardId};
+use twilight_http::Client;
 
 use crate::model::MessageModel;
 
@@ -15,10 +16,11 @@ async fn main() {
 
     let mut model = MessageModel::default();
 
-    let token = secrets["discord_token"].clone();
+    let token = &secrets["discord_token"];
     let intents = Intents::all();
 
-    let mut shard = Shard::new(ShardId::ONE, token, intents);
+    let mut shard = Shard::new(ShardId::ONE, token.clone(), intents);
+    let client = Client::new(token.clone());
 
     loop {
         let event = match shard.next_event().await {
@@ -43,9 +45,10 @@ async fn main() {
         #[allow(clippy::single_match)]
         match event {
             Event::MessageCreate(c) => {
-                let result = model.insert_message(&c.0);
-                debug!("{result:?}")
-            },
+                if model.insert_message(&c.0).is_err() {
+                    let _ = client.delete_message(c.channel_id, c.id).await;
+                }
+            }
             _ => {}
         }
     }
