@@ -4,7 +4,7 @@ use twilight_model::{
     id::{marker::GuildMarker, Id},
 };
 
-use crate::get_client;
+use crate::{get_client, APP_ID};
 
 fn monitor_command() -> Command {
     Command {
@@ -34,8 +34,7 @@ pub async fn init_commands_for_guild<'a>(
 }
 
 pub async fn init_commands(client: &Client) {
-    let app_id = env!("application_id").parse::<u64>().unwrap();
-    let interaction_builder = client.interaction(Id::new(app_id));
+    let interaction_builder = client.interaction(APP_ID);
     if let Ok(list) = get_client().current_user_guilds().await {
         if let Ok(guilds) = list.model().await {
             for guild in guilds {

@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_http::Client;
-use twilight_model::application::interaction::InteractionData;
+use twilight_model::{application::interaction::InteractionData, id::{Id, marker::ApplicationMarker}};
 
 use crate::model::MessageModel;
 
@@ -17,6 +17,14 @@ pub(crate) fn get_client() -> &'static Client {
         .get()
         .expect("Client was requested before client was initialized -- contact developer")
 }
+
+pub(crate) const APP_ID: Id<ApplicationMarker> = {
+    let id = match konst::primitive::parse_u64(env!("application_id")) {
+        Ok(result) => result,
+        Err(_) => panic!("In conf.env, application_id is incorrect"),
+    };
+    Id::new(id)
+};
 
 #[tokio::main]
 async fn main() {
@@ -67,14 +75,9 @@ async fn main() {
                 }
             }
             Event::InteractionCreate(interaction) => {
-                if !matches!(
-                    interaction.data,
-                    Some(InteractionData::ApplicationCommand(ref command))
-                        if command.name == "monitor"
-                ) {
-                    continue;
-                }
                 if_chain::if_chain! {
+                    if let Some(InteractionData::ApplicationCommand(ref command)) = interaction.data;
+                    if command.name == "monitor";
                     if let Some(ref guild) = interaction.guild_id;
                     if let Some(ref channel) = interaction.channel;
                     then {
