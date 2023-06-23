@@ -1,4 +1,5 @@
 fn main() {
+    println!("cargo:rerun-if-changed=conf.env");
     let conf_file = include_str!("conf.env");
     conf_file
         .split('\n')
