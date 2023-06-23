@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_http::Client;
@@ -5,6 +7,8 @@ use twilight_http::Client;
 use crate::model::MessageModel;
 
 mod model;
+
+static CLIENT: OnceLock<Client> = OnceLock::new();
 
 #[tokio::main]
 async fn main() {
@@ -20,7 +24,10 @@ async fn main() {
     let intents = Intents::all();
 
     let mut shard = Shard::new(ShardId::ONE, token.clone(), intents);
-    let client = Client::new(token.clone());
+    CLIENT
+        .set(Client::new(token.clone()))
+        .expect("Could not initialize http client to Discord.");
+    // let client = Client::new(token.clone());
 
     loop {
         let event = match shard.next_event().await {
@@ -46,7 +53,13 @@ async fn main() {
         match event {
             Event::MessageCreate(c) => {
                 if model.insert_message(&c.0).is_err() {
-                    let _ = client.delete_message(c.channel_id, c.id).await;
+                    tokio::spawn(async move {
+                        let _ = CLIENT
+                            .get()
+                            .expect("The client has not initialized")
+                            .delete_message(c.channel_id, c.id)
+                            .await;
+                    });
                 }
             }
             _ => {}
