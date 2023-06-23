@@ -19,17 +19,12 @@ pub(crate) fn get_client() -> &'static Client{
 async fn main() {
     simple_logger::init_with_level(log::Level::Debug).unwrap();
 
-    let secrets_file = include_bytes!("../conf.properties");
-    let secrets = java_properties::read(secrets_file.as_slice()).unwrap();
-
     let mut model = MessageModel::default();
-
-    let token = &secrets["discord_token"];
-    let intents = Intents::all();
-
-    let mut shard = Shard::new(ShardId::ONE, token.clone(), intents);
+    
+    let token = env!("discord_token");
+    let mut shard = Shard::new(ShardId::ONE, token.to_string(), Intents::all());
     CLIENT
-        .set(Client::new(token.clone()))
+        .set(Client::new(token.to_string()))
         .expect("Could not initialize http client to Discord.");
 
     command::init_commands(get_client());
