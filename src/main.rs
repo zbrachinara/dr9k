@@ -7,6 +7,7 @@ use twilight_http::Client;
 use crate::model::MessageModel;
 
 mod model;
+mod file;
 
 static CLIENT: OnceLock<Client> = OnceLock::new();
 
