@@ -3,16 +3,19 @@ use std::sync::OnceLock;
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_http::Client;
+use twilight_model::application::interaction::InteractionData;
 
 use crate::model::MessageModel;
 
-mod model;
-mod file;
 mod command;
+mod file;
+mod model;
 
 static CLIENT: OnceLock<Client> = OnceLock::new();
-pub(crate) fn get_client() -> &'static Client{
-    CLIENT.get().expect("Client was requested before client was initialized -- contact developer")
+pub(crate) fn get_client() -> &'static Client {
+    CLIENT
+        .get()
+        .expect("Client was requested before client was initialized -- contact developer")
 }
 
 #[tokio::main]
@@ -20,7 +23,7 @@ async fn main() {
     simple_logger::init_with_level(log::Level::Debug).unwrap();
 
     let mut model = MessageModel::default();
-    
+
     let token = env!("discord_token");
     let mut shard = Shard::new(ShardId::ONE, token.to_string(), Intents::all());
     CLIENT
@@ -64,13 +67,20 @@ async fn main() {
                 }
             }
             Event::InteractionCreate(interaction) => {
+                if !matches!(
+                    interaction.data,
+                    Some(InteractionData::ApplicationCommand(ref command))
+                        if command.name == "monitor"
+                ) {
+                    continue;
+                }
                 if_chain::if_chain! {
                     if let Some(ref guild) = interaction.guild_id;
                     if let Some(ref channel) = interaction.channel;
                     then {
-
+                        debug!("Interaction message received!: from {guild}:{}", channel.id)
                     } else {
-
+                        continue;
                     }
                 }
             }
