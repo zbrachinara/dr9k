@@ -8,8 +8,12 @@ use crate::model::MessageModel;
 
 mod model;
 mod file;
+mod command;
 
 static CLIENT: OnceLock<Client> = OnceLock::new();
+pub(crate) fn get_client() -> &'static Client{
+    CLIENT.get().expect("Client was requested before client was initialized -- contact developer")
+}
 
 #[tokio::main]
 async fn main() {
@@ -27,6 +31,8 @@ async fn main() {
     CLIENT
         .set(Client::new(token.clone()))
         .expect("Could not initialize http client to Discord.");
+
+    command::init_commands(get_client());
 
     loop {
         let event = match shard.next_event().await {

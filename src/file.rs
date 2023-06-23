@@ -27,7 +27,7 @@ mod data_file {
 pub use data_file::get_data_dir;
 use tap::Tap;
 
-pub fn data_file(path: &Path) -> io::Result<File> {
+pub fn data_file(path: impl AsRef<Path>) -> io::Result<File> {
     OpenOptions::new()
         .create(true)
         .read(true)
