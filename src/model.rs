@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
 use twilight_model::channel::message::Message;
 use twilight_model::channel::message::component::ComponentType;
-use twilight_model::id::marker::GuildMarker;
+use twilight_model::id::marker::{GuildMarker, ChannelMarker};
 use twilight_model::id::Id;
 
 #[derive(Debug)]
@@ -25,7 +25,13 @@ impl<'a> From<&'a Message> for MessageMeta {
 
 #[derive(Default)]
 pub struct MessageModel {
-    guilds: HashMap<Id<GuildMarker>, HashMap<String, MessageMeta>>,
+    guilds: HashMap<Id<GuildMarker>, GuildInfo>,
+}
+
+#[derive(Default)]
+struct GuildInfo {
+    messages: HashMap<String, MessageMeta>,
+    monitored_channels: HashSet<Id<ChannelMarker>>
 }
 
 impl MessageModel {
@@ -38,9 +44,9 @@ impl MessageModel {
 
         let content = message.content.clone();
         let Some(guild_id) = message.guild_id else {return Ok(())}; // this is not from a guild, no reason to reject
-        let guild_messages = self.guilds.entry(guild_id).or_default();
+        let guild_info = self.guilds.entry(guild_id).or_default();
 
-        if guild_messages.insert(content, message.into()).is_some() {
+        if guild_info.messages.insert(content, message.into()).is_some() {
             Err(MessageRejected::Text)
         } else {
             Ok(())
