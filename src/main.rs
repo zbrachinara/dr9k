@@ -85,7 +85,8 @@ async fn main() {
             }
             Event::InteractionCreate(interaction) => {
                 let (guild, channel) = if_chain::if_chain! {
-                    if let Some(InteractionData::ApplicationCommand(ref command)) = interaction.data;
+                    if let Some(InteractionData::ApplicationCommand(ref command))
+                        = interaction.data;
                     if command.name == "monitor";
                     if let Some(ref guild) = interaction.guild_id;
                     if let Some(ref channel) = interaction.channel;
