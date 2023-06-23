@@ -14,8 +14,8 @@ pub enum MessageRejected {
 pub enum MessageAccepted {
     /// The message is not part of a guild, which this bot does not check
     NotInGuild,
-    /// The message has an image, which the r9k system lets pass for now
-    HasImage,
+    /// The message has an attachment, which the r9k system lets pass for now
+    HasAttachment,
     /// The message was sent in a guild, but not in a monitored channel
     NotMonitored,
     /// The message is accepted by the r9k system
@@ -54,7 +54,7 @@ impl MessageModel {
 
         if !message.attachments.is_empty()
         {
-            return Ok(MessageAccepted::HasImage);
+            return Ok(MessageAccepted::HasAttachment);
         }
         if !guild_info.monitored_channels.contains(&message.channel_id) {
             return Ok(MessageAccepted::NotMonitored)
