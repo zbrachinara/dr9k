@@ -27,7 +27,7 @@ async fn main() {
         .set(Client::new(token.to_string()))
         .expect("Could not initialize http client to Discord.");
 
-    command::init_commands(get_client());
+    command::init_commands(get_client()).await;
 
     loop {
         let event = match shard.next_event().await {
