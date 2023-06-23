@@ -27,7 +27,6 @@ async fn main() {
     CLIENT
         .set(Client::new(token.clone()))
         .expect("Could not initialize http client to Discord.");
-    // let client = Client::new(token.clone());
 
     loop {
         let event = match shard.next_event().await {
@@ -46,19 +45,19 @@ async fn main() {
             }
         };
 
-        // You'd normally want to spawn a new tokio task for each event and
-        // handle the event there to not block the shard.
-        // debug!("received event: {event:?}");
         #[allow(clippy::single_match)]
         match event {
             Event::MessageCreate(c) => {
                 if model.insert_message(&c.0).is_err() {
                     tokio::spawn(async move {
-                        let _ = CLIENT
+                        if let Err(e) = CLIENT
                             .get()
                             .expect("The client has not initialized")
                             .delete_message(c.channel_id, c.id)
-                            .await;
+                            .await
+                        {
+                            error!("Failure in deleting repeated message:\n{e}");
+                        }
                     });
                 }
             }
