@@ -1,5 +1,7 @@
 use log::*;
-use twilight_gateway::{Intents, Shard, ShardId};
+use twilight_gateway::{Intents, Shard, ShardId, Event};
+
+use crate::model::MessageModel;
 
 mod model;
 
@@ -10,6 +12,8 @@ async fn main() {
     let secrets_file = include_bytes!("../conf.properties");
     let secrets = java_properties::read(secrets_file.as_slice()).unwrap();
     println!("{secrets:?}");
+
+    let mut model = MessageModel::default();
 
     let token = secrets["discord_token"].clone();
     let intents = Intents::all();
@@ -35,6 +39,14 @@ async fn main() {
 
         // You'd normally want to spawn a new tokio task for each event and
         // handle the event there to not block the shard.
-        debug!("received event: {event:?}");
+        // debug!("received event: {event:?}");
+        #[allow(clippy::single_match)]
+        match event {
+            Event::MessageCreate(c) => {
+                let result = model.insert_message(&c.0);
+                debug!("{result:?}")
+            },
+            _ => {}
+        }
     }
 }

@@ -5,7 +5,8 @@ use twilight_model::channel::message::Message;
 use twilight_model::id::marker::GuildMarker;
 use twilight_model::id::Id;
 
-enum MessageRejected {
+#[derive(Debug)]
+pub enum MessageRejected {
     Text
 }
 
@@ -14,15 +15,15 @@ struct MessageMeta {
 }
 
 #[derive(Default)]
-struct MessageModel {
+pub struct MessageModel {
     guilds: HashMap<Id<GuildMarker>, HashMap<String, MessageMeta>>,
 }
 
 impl MessageModel {
     /// Attempt to insert the message into this model. Will return an error if the message does not
     /// comply with previous messages, otherwise will return `Ok`
-    fn insert_message(&mut self, message: Message) -> Result<(), MessageRejected> {
-        let content = message.content;
+    pub fn insert_message(&mut self, message: &Message) -> Result<(), MessageRejected> {
+        let content = message.content.clone();
         let Some(guild_id) = message.guild_id else {return Ok(())}; // this is not from a guild, no reason to reject
         let guild_messages = self.guilds.entry(guild_id).or_default();
 
