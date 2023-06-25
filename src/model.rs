@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
+use std::time::SystemTime;
 
-
+use chrono::offset::Utc;
 use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 use twilight_model::id::Id;
@@ -41,10 +42,21 @@ pub struct MessageModel {
     guilds: HashMap<Id<GuildMarker>, GuildInfo>,
 }
 
-#[derive(Default)]
 struct GuildInfo {
     messages: HashMap<String, MessageMeta>,
     monitored_channels: HashSet<Id<ChannelMarker>>,
+    /// Amount of time a message will be guarded against
+    ttl: i64,
+}
+
+impl Default for GuildInfo {
+    fn default() -> Self {
+        Self {
+            messages: Default::default(),
+            monitored_channels: Default::default(),
+            ttl: 864_000_000_000,
+        }
+    }
 }
 
 impl MessageModel {
@@ -64,19 +76,18 @@ impl MessageModel {
             return Ok(MessageAccepted::NotMonitored);
         }
         if message.author.bot {
-            return Ok(MessageAccepted::Bot)
+            return Ok(MessageAccepted::Bot);
         }
 
         let content = message.content.clone();
-
-        if guild_info
-            .messages
-            .insert(content, message.into())
-            .is_some()
-        {
-            Err(MessageRejected::Text)
-        } else {
-            Ok(MessageAccepted::Nominal)
+        if_chain::if_chain! {
+            if let Some(meta) = guild_info.messages.insert(content, message.into());
+            if Utc::now().timestamp_micros() < guild_info.ttl + meta.timestamp;
+            then {
+                Err(MessageRejected::Text)
+            } else {
+                Ok(MessageAccepted::Nominal)
+            }
         }
     }
 
