@@ -3,7 +3,7 @@ use twilight_model::{
     id::{marker::GuildMarker, Id},
 };
 
-use crate::{get_client, get_interaction_client};
+use crate::{get_client, interaction_client};
 
 fn monitor_command() -> Command {
     Command {
@@ -24,7 +24,7 @@ fn monitor_command() -> Command {
 }
 
 pub async fn init_commands_for_guild<'a>(guild: Id<GuildMarker>) {
-    let _ = get_interaction_client()
+    let _ = interaction_client()
         .set_guild_commands(guild, &[monitor_command()])
         .await;
 }

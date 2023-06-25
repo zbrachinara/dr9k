@@ -1,18 +1,19 @@
 use std::sync::OnceLock;
 
+use config::config;
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_http::{client::InteractionClient, Client};
 use twilight_model::{
     application::interaction::InteractionData,
     http::interaction::{InteractionResponse, InteractionResponseType},
-    id::{marker::ApplicationMarker, Id},
 };
 use twilight_util::builder::InteractionResponseDataBuilder as IRDB;
 
 use crate::model::MessageModel;
 
 mod command;
+mod config;
 mod file;
 mod model;
 
@@ -23,17 +24,9 @@ pub(crate) fn get_client() -> &'static Client {
         .expect("Client was requested before client was initialized -- contact developer")
 }
 
-pub(crate) fn get_interaction_client() -> InteractionClient<'static> {
-    get_client().interaction(APP_ID)
+pub(crate) fn interaction_client() -> InteractionClient<'static> {
+    get_client().interaction(config().application_id)
 }
-
-pub(crate) const APP_ID: Id<ApplicationMarker> = {
-    let id = match konst::primitive::parse_u64(env!("application_id")) {
-        Ok(result) => result,
-        Err(_) => panic!("In conf.env, application_id is incorrect"),
-    };
-    Id::new(id)
-};
 
 #[tokio::main]
 async fn main() {
@@ -41,10 +34,10 @@ async fn main() {
 
     let mut model = MessageModel::default();
 
-    let token = env!("discord_token");
-    let mut shard = Shard::new(ShardId::ONE, token.to_string(), Intents::all());
+    let token = config().discord_token.clone();
+    let mut shard = Shard::new(ShardId::ONE, token.clone(), Intents::all());
     CLIENT
-        .set(Client::new(token.to_string()))
+        .set(Client::new(token))
         .expect("Could not initialize http client to Discord.");
 
     command::init_commands().await;
@@ -97,7 +90,7 @@ async fn main() {
                     }
                 };
 
-                let _ = get_interaction_client()
+                let _ = interaction_client()
                     .create_response(
                         interaction.id,
                         &interaction.token,
