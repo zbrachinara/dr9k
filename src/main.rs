@@ -4,13 +4,15 @@ use config::config;
 use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_http::{client::InteractionClient, Client};
+use twilight_interactions::command::{CommandInputData, CommandModel};
 use twilight_model::{
-    application::interaction::InteractionData,
+    application::interaction::{Interaction, InteractionData},
+    gateway::payload::incoming::InteractionCreate,
     http::interaction::{InteractionResponse, InteractionResponseType},
 };
 use twilight_util::builder::InteractionResponseDataBuilder as IRDB;
 
-use crate::model::MessageModel;
+use crate::{command::Monitor, model::MessageModel};
 
 mod command;
 mod config;
@@ -77,37 +79,18 @@ async fn main() {
                 }
             }
             Event::InteractionCreate(interaction) => {
-                let (guild, channel) = if_chain::if_chain! {
-                    if let Some(InteractionData::ApplicationCommand(ref command))
-                        = interaction.data;
-                    if command.name == "monitor";
-                    if let Some(ref guild) = interaction.guild_id;
-                    if let Some(ref channel) = interaction.channel;
-                    then {
-                        (guild, channel)
-                    } else {
-                        continue;
+                if let Some(InteractionData::ApplicationCommand(ref command)) = interaction.data {
+                    let command_data = CommandInputData::from((**command).clone());
+                    match command.name.as_str() {
+                        "monitor" => {
+                            Monitor::from_interaction(command_data)
+                                .unwrap()
+                                .handle(&interaction, &mut model)
+                                .await;
+                        }
+                        _ => continue,
                     }
-                };
-
-                let _ = interaction_client()
-                    .create_response(
-                        interaction.id,
-                        &interaction.token,
-                        &InteractionResponse {
-                            kind: InteractionResponseType::ChannelMessageWithSource,
-                            data: Some(
-                                IRDB::new()
-                                    .content(if model.toggle_monitor(*guild, channel.id) {
-                                        "Stopping monitoring of this channel"
-                                    } else {
-                                        "Beginning to monitor this channel"
-                                    })
-                                    .build(),
-                            ),
-                        },
-                    )
-                    .await;
+                }
             }
             _ => {}
         }
