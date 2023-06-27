@@ -10,6 +10,10 @@ twilight-gateway = "0.15"
 twilight-http = "0.15"
 twilight-util = {version = "0.15", features = ["builder"]}
 twilight-model = "0.15"
+
+# 3rd party twilight addons
+twilight-interactions = "0.15"
+
 tokio = {version = "1.28", features = ["rt-multi-thread", "macros"]}
 chrono = "0.4"
 tap = "1"
