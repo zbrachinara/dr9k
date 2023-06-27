@@ -1,31 +1,16 @@
-use twilight_model::{
-    application::command::{Command, CommandType},
-    id::{marker::GuildMarker, Id},
-};
+use twilight_interactions::command::{CommandModel, CreateCommand};
+use twilight_model::id::{marker::GuildMarker, Id};
 
 use crate::{get_client, interaction_client};
 
-fn monitor_command() -> Command {
-    Command {
-        application_id: None,
-        default_member_permissions: None,
-        dm_permission: None,
-        description: "Toggles r9k monitoring for the channel".to_string(),
-        description_localizations: None,
-        guild_id: None,
-        id: None,
-        kind: CommandType::ChatInput,
-        name: "monitor".to_string(),
-        name_localizations: None,
-        nsfw: Some(false),
-        options: vec![],
-        version: Id::new(1),
-    }
-}
+#[derive(CommandModel, CreateCommand)]
+#[command(name = "monitor")]
+/// Toggles r9k monitoring for this channel
+struct Monitor {}
 
 pub async fn init_commands_for_guild<'a>(guild: Id<GuildMarker>) {
     let _ = interaction_client()
-        .set_guild_commands(guild, &[monitor_command()])
+        .set_guild_commands(guild, &[Monitor::create_command().into()])
         .await;
 }
 
