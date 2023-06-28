@@ -39,17 +39,17 @@ impl<'a> From<&'a Message> for MessageMeta {
 
 #[derive(Default)]
 pub struct MessageModel {
-    guilds: HashMap<Id<GuildMarker>, GuildInfo>,
+    guilds: HashMap<Id<GuildMarker>, GuildMeta>,
 }
 
-struct GuildInfo {
+struct GuildMeta {
     messages: HashMap<String, MessageMeta>,
     monitored_channels: HashSet<Id<ChannelMarker>>,
     /// Amount of time a message will be guarded against
     ttl: i64,
 }
 
-impl Default for GuildInfo {
+impl Default for GuildMeta {
     fn default() -> Self {
         Self {
             messages: Default::default(),
