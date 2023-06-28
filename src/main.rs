@@ -5,12 +5,7 @@ use log::*;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_http::{client::InteractionClient, Client};
 use twilight_interactions::command::{CommandInputData, CommandModel};
-use twilight_model::{
-    application::interaction::{Interaction, InteractionData},
-    gateway::payload::incoming::InteractionCreate,
-    http::interaction::{InteractionResponse, InteractionResponseType},
-};
-use twilight_util::builder::InteractionResponseDataBuilder as IRDB;
+use twilight_model::application::interaction::InteractionData;
 
 use crate::{command::Monitor, model::MessageModel};
 
