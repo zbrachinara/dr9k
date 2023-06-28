@@ -20,26 +20,33 @@ impl Monitor {
             .as_ref()
             .zip(interaction.channel.as_ref())
         {
-            let _ = interaction_client()
-                .create_response(
-                    interaction.id,
-                    &interaction.token,
-                    &InteractionResponse {
-                        kind: InteractionResponseType::ChannelMessageWithSource,
-                        data: Some(
-                            IRDB::new()
-                                .content(if model.toggle_monitor(*guild, channel.id) {
-                                    "Stopping monitoring of this channel"
-                                } else {
-                                    "Beginning to monitor this channel"
-                                })
-                                .build(),
-                        ),
-                    },
-                )
-                .await;
+            let _ = interaction_respond(
+                if model.toggle_monitor(*guild, channel.id) {
+                    "Stopping monitoring of this channel"
+                } else {
+                    "Beginning to monitor this channel"
+                },
+                interaction,
+            ).await;
         }
     }
+}
+
+async fn interaction_respond(
+    message: &str,
+    interaction: &Interaction,
+) -> Result<(), twilight_http::Error> {
+    interaction_client()
+        .create_response(
+            interaction.id,
+            &interaction.token,
+            &InteractionResponse {
+                kind: InteractionResponseType::ChannelMessageWithSource,
+                data: Some(IRDB::new().content(message).build()),
+            },
+        )
+        .await
+        .map(|_| ())
 }
 
 pub async fn init_commands_for_guild<'a>(guild: Id<GuildMarker>) {
