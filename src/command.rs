@@ -6,7 +6,10 @@ use twilight_model::{
 };
 use twilight_util::builder::InteractionResponseDataBuilder as IRDB;
 
-use crate::{get_client, interaction_client, model::MessageModel};
+use crate::{
+    clients::{client, interaction_client},
+    model::MessageModel,
+};
 
 #[derive(CommandModel, CreateCommand)]
 #[command(name = "monitor")]
@@ -27,7 +30,8 @@ impl Monitor {
                     "Beginning to monitor this channel"
                 },
                 interaction,
-            ).await;
+            )
+            .await;
         }
     }
 }
@@ -56,7 +60,7 @@ pub async fn init_commands_for_guild<'a>(guild: Id<GuildMarker>) {
 }
 
 pub async fn init_commands() {
-    if let Ok(list) = get_client().current_user_guilds().await {
+    if let Ok(list) = client().current_user_guilds().await {
         if let Ok(guilds) = list.model().await {
             for guild in guilds {
                 init_commands_for_guild(guild.id).await;
