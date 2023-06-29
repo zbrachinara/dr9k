@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use std::time::SystemTime;
+use std::sync::Arc;
 
 use chrono::offset::Utc;
+use tokio::sync::{Mutex, RwLock};
 use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 use twilight_model::id::Id;
@@ -37,9 +38,10 @@ impl<'a> From<&'a Message> for MessageMeta {
     }
 }
 
-#[derive(Default)]
+type GuildsMap = HashMap<Id<GuildMarker>, Mutex<GuildMeta>>;
+#[derive(Default, Clone)]
 pub struct MessageModel {
-    guilds: HashMap<Id<GuildMarker>, GuildMeta>,
+    guilds: Arc<RwLock<GuildsMap>>,
 }
 
 struct GuildMeta {
@@ -60,18 +62,29 @@ impl Default for GuildMeta {
 }
 
 impl MessageModel {
+
+    pub async fn init_guild(&self, guild: Id<GuildMarker>) {
+        let mut guild_map = self.guilds.write().await;
+        guild_map.insert(guild, Default::default());
+    }
+
     /// Attempt to insert the message into this model. Will return an error if the message does not
     /// comply with previous messages, otherwise will return `Ok`
-    pub fn insert_message(
-        &mut self,
+    pub async fn insert_message(
+        &self,
         message: &Message,
     ) -> Result<MessageAccepted, MessageRejected> {
         let Some(guild_id) = message.guild_id else {return Ok(MessageAccepted::NotInGuild)};
-        let guild_info = self.guilds.entry(guild_id).or_default();
-
         if !message.attachments.is_empty() {
             return Ok(MessageAccepted::HasAttachment);
         }
+
+        let guild_map = self.guilds.read().await;
+        let mut guild_info = guild_map
+            .get(&guild_id)
+            .expect("Guild was not properly initialized")
+            .lock()
+            .await;
         if !guild_info.monitored_channels.contains(&message.channel_id) {
             return Ok(MessageAccepted::NotMonitored);
         }
@@ -91,8 +104,13 @@ impl MessageModel {
         }
     }
 
-    pub fn toggle_monitor(&mut self, guild: Id<GuildMarker>, channel: Id<ChannelMarker>) -> bool {
-        let guild_info = self.guilds.entry(guild).or_default();
+    pub async fn toggle_monitor(&self, guild: Id<GuildMarker>, channel: Id<ChannelMarker>) -> bool {
+        let guild_map = self.guilds.read().await;
+        let mut guild_info = guild_map
+            .get(&guild)
+            .expect("Guild was not properly initialized")
+            .lock()
+            .await;
         if guild_info.monitored_channels.remove(&channel) {
             true
         } else {

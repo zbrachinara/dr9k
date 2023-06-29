@@ -17,14 +17,14 @@ use crate::{
 pub struct Monitor {}
 
 impl Monitor {
-    pub async fn handle(self, interaction: &Interaction, model: &mut MessageModel) {
+    pub async fn handle(self, interaction: &Interaction, model: &MessageModel) {
         if let Some((guild, channel)) = interaction
             .guild_id
             .as_ref()
             .zip(interaction.channel.as_ref())
         {
             let _ = interaction_respond(
-                if model.toggle_monitor(*guild, channel.id) {
+                if model.toggle_monitor(*guild, channel.id).await {
                     "Stopping monitoring of this channel"
                 } else {
                     "Beginning to monitor this channel"

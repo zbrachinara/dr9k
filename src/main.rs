@@ -16,7 +16,7 @@ mod model;
 async fn main() {
     simple_logger::init_with_level(log::Level::Debug).unwrap();
 
-    let mut model = MessageModel::default();
+    let model = MessageModel::default();
 
     let token = config().discord_token.clone();
     let mut shard = Shard::new(ShardId::ONE, token.clone(), Intents::all());
@@ -39,34 +39,39 @@ async fn main() {
                 continue;
             }
         };
+        let model = model.clone();
 
         debug!("{event:?}");
-        #[allow(clippy::single_match)]
-        match event {
-            Event::MessageCreate(c) => {
-                if model.insert_message(&c.0).is_err() {
-                    tokio::spawn(async move {
+        tokio::spawn(async move {
+            match event {
+                Event::GuildCreate(guild) => {
+                    model.init_guild(guild.id).await;
+                }
+                Event::MessageCreate(c) => {
+                    if model.insert_message(&c.0).await.is_err() {
                         if let Err(e) = client().delete_message(c.channel_id, c.id).await {
                             error!("Failure in deleting repeated message:\n{e}");
                         }
-                    });
-                }
-            }
-            Event::InteractionCreate(interaction) => {
-                if let Some(InteractionData::ApplicationCommand(ref command)) = interaction.data {
-                    let command_data = CommandInputData::from((**command).clone());
-                    match command.name.as_str() {
-                        "monitor" => {
-                            Monitor::from_interaction(command_data)
-                                .unwrap()
-                                .handle(&interaction, &mut model)
-                                .await;
-                        }
-                        _ => continue,
                     }
                 }
+                Event::InteractionCreate(interaction) => {
+                    if let Some(InteractionData::ApplicationCommand(ref command)) = interaction.data
+                    {
+                        let command_data = CommandInputData::from((**command).clone());
+                        #[allow(clippy::single_match)]
+                        match command.name.as_str() {
+                            "monitor" => {
+                                Monitor::from_interaction(command_data)
+                                    .unwrap()
+                                    .handle(&interaction, &model)
+                                    .await;
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+                _ => {}
             }
-            _ => {}
-        }
+        });
     }
 }
