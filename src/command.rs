@@ -33,41 +33,28 @@ pub struct CheckCommand;
 
 impl Monitor {
     pub async fn handle(self, interaction: &Interaction, model: &MessageModel) {
-        match self {
-            Self::Enable(_) => {
-                if let Some((guild, channel)) = interaction
-                    .guild_id
-                    .as_ref()
-                    .zip(interaction.channel.as_ref())
-                {
-                    let _ = interaction_respond(
-                        if model.toggle_monitor(*guild, channel.id).await {
-                            "Stopping monitoring of this channel"
-                        } else {
-                            "Beginning to monitor this channel"
-                        },
-                        interaction,
-                    )
-                    .await;
+        if let Some((guild, channel)) = interaction
+            .guild_id
+            .as_ref()
+            .zip(interaction.channel.as_ref())
+        {
+            let message = match self {
+                Self::Enable(_) => {
+                    if model.toggle_monitor(*guild, channel.id).await {
+                        "Stopping monitoring of this channel"
+                    } else {
+                        "Beginning to monitor this channel"
+                    }
                 }
-            }
-            Self::Check(_) => {
-                if let Some((guild, channel)) = interaction
-                    .guild_id
-                    .as_ref()
-                    .zip(interaction.channel.as_ref())
-                {
-                    let _ = interaction_respond(
-                        if model.is_monitored(*guild, channel.id).await {
-                            "This channel is being monitored"
-                        } else {
-                            "This channel is not being monitored"
-                        },
-                        interaction,
-                    )
-                    .await;
+                Self::Check(_) => {
+                    if model.is_monitored(*guild, channel.id).await {
+                        "This channel is being monitored"
+                    } else {
+                        "This channel is not being monitored"
+                    }
                 }
-            }
+            };
+            let _ = interaction_respond(message, interaction).await;
         }
     }
 }
