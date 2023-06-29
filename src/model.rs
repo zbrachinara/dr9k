@@ -145,4 +145,11 @@ impl MessageModel {
             false
         }
     }
+
+    pub async fn is_monitored(&self, guild: Id<GuildMarker>, channel: Id<ChannelMarker>) -> bool {
+        let mut guild_map = None;
+        let guild_info = self.get_or_init(&mut guild_map, guild).await.lock().await;
+
+        guild_info.monitored_channels.contains(&channel)
+    }
 }
