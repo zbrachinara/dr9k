@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use chrono::offset::Utc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 use twilight_model::id::Id;
@@ -62,10 +62,42 @@ impl Default for GuildMeta {
 }
 
 impl MessageModel {
-
     pub async fn init_guild(&self, guild: Id<GuildMarker>) {
         let mut guild_map = self.guilds.write().await;
         guild_map.insert(guild, Default::default());
+    }
+
+    /// Gets a reference to the [GuildMeta] related to the guild with the given id, or creates a new
+    /// one and assigns to it, only acquiring a write lock to the guild map if necessary. To bypass
+    /// lifetime restrictions, this function requires the caller to hold a guard, which you can
+    /// create by declaring an [Option::None] in the callee scope and passing a reference to it
+    /// here.
+    async fn get_or_init<'slf, 'grd>(
+        &'slf self,
+        guard: &'grd mut Option<RwLockReadGuard<'slf, GuildsMap>>,
+        guild_id: Id<GuildMarker>,
+    ) -> &'grd Mutex<GuildMeta>
+    where
+        'slf: 'grd,
+    {
+        *guard = Some(self.guilds.read().await);
+        if unsafe { guard.as_ref().unwrap_unchecked() }
+            .get(&guild_id)
+            .is_none()
+        {
+            *guard = None;
+            log::debug!("An entry was not found for guild {guild_id}, creating a default");
+            let mut guild_map = self.guilds.write().await;
+            guild_map.insert(guild_id, Default::default());
+            *guard = Some(guild_map.downgrade());
+        }
+        unsafe {
+            guard
+                .as_ref()
+                .unwrap_unchecked()
+                .get(&guild_id)
+                .unwrap_unchecked()
+        }
     }
 
     /// Attempt to insert the message into this model. Will return an error if the message does not
@@ -79,12 +111,10 @@ impl MessageModel {
             return Ok(MessageAccepted::HasAttachment);
         }
 
-        let guild_map = self.guilds.read().await;
-        let mut guild_info = guild_map
-            .get(&guild_id)
-            .expect("Guild was not properly initialized")
-            .lock()
-            .await;
+        let mut guild_map = None;
+        let guild_meta_mx = self.get_or_init(&mut guild_map, guild_id).await;
+        let mut guild_info = guild_meta_mx.lock().await;
+
         if !guild_info.monitored_channels.contains(&message.channel_id) {
             return Ok(MessageAccepted::NotMonitored);
         }
@@ -105,12 +135,9 @@ impl MessageModel {
     }
 
     pub async fn toggle_monitor(&self, guild: Id<GuildMarker>, channel: Id<ChannelMarker>) -> bool {
-        let guild_map = self.guilds.read().await;
-        let mut guild_info = guild_map
-            .get(&guild)
-            .expect("Guild was not properly initialized")
-            .lock()
-            .await;
+        let mut guild_map = None;
+        let mut guild_info = self.get_or_init(&mut guild_map, guild).await.lock().await;
+
         if guild_info.monitored_channels.remove(&channel) {
             true
         } else {
