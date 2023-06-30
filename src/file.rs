@@ -16,3 +16,4 @@ paste! { pub fn [<name _dir>] () -> Result<PathBuf, io::Error> {
     }
     Ok(path)
 }}
+

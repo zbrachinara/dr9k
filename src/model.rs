@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use chrono::offset::Utc;
+use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
@@ -26,6 +27,7 @@ pub enum MessageAccepted {
     Nominal,
 }
 
+#[derive(Serialize, Deserialize)]
 struct MessageMeta {
     timestamp: i64,
 }
@@ -44,6 +46,7 @@ pub struct MessageModel {
     guilds: Arc<RwLock<GuildsMap>>,
 }
 
+#[derive(Serialize, Deserialize)]
 struct GuildMeta {
     messages: HashMap<String, MessageMeta>,
     monitored_channels: HashSet<Id<ChannelMarker>>,
