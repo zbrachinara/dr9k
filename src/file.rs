@@ -1,36 +1,18 @@
-use std::{
-    fs::{File, OpenOptions},
-    io,
-    path::Path,
-};
+use duplicate::duplicate_item;
+use paste::paste;
 
-mod data_file {
-    use std::{io::ErrorKind, path::PathBuf, sync::OnceLock};
+use std::{io, path::PathBuf};
 
-    const DATA_DIR_PATH: &str = "./.data";
-    static DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
-
-    pub fn get_data_dir() -> PathBuf {
-        DATA_DIR
-            .get_or_init(|| {
-                if let Err(e) = std::fs::create_dir(DATA_DIR_PATH) {
-                    if e.kind() != ErrorKind::AlreadyExists {
-                        panic!("Could not create the data directory");
-                    }
-                }
-                DATA_DIR_PATH.into()
-            })
-            .clone()
+#[duplicate_item(
+    name     folder_path;
+    [data]   ["./.data"];
+    [guild]  ["./.data/guilds"];
+)]
+paste! { pub fn [<name _dir>] () -> Result<PathBuf, io::Error> {
+    const PATH_STR: &str = folder_path;
+    let path = PathBuf::from(PATH_STR);
+    if !path.is_dir() {
+        std::fs::create_dir_all(&path)?;
     }
-}
-
-pub use data_file::get_data_dir;
-use tap::Tap;
-
-pub fn data_file(path: impl AsRef<Path>) -> io::Result<File> {
-    OpenOptions::new()
-        .create(true)
-        .read(true)
-        .write(true)
-        .open(get_data_dir().tap_mut(|d| d.push(path)))
-}
+    Ok(path)
+}}
