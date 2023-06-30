@@ -28,7 +28,7 @@ pub struct EnableCommand;
 
 #[derive(CommandModel, CreateCommand)]
 #[command(name = "check")]
-/// Toggles r9k monitoring for this channel
+/// Checks if r9k monitoring is enabled
 pub struct CheckCommand;
 
 impl Monitor {
