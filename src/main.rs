@@ -1,5 +1,6 @@
 use config::config;
 use log::*;
+use model::autosave_task;
 use twilight_gateway::{Event, Intents, Shard, ShardId};
 use twilight_interactions::command::{CommandInputData, CommandModel};
 use twilight_model::application::interaction::InteractionData;
@@ -17,6 +18,10 @@ async fn main() {
     simple_logger::init_with_level(log::Level::Debug).unwrap();
 
     let model = MessageModel::default();
+    if let Err(e) = model.load_from_file().await {
+        log::error!("{e:?}")
+    }
+    tokio::spawn(autosave_task(model.clone()));
 
     let token = config().discord_token.clone();
     let mut shard = Shard::new(ShardId::ONE, token.clone(), Intents::all());

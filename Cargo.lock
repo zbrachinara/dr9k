@@ -270,6 +270,7 @@ dependencies = [
  "serde",
  "simple_logger",
  "tap",
+ "thiserror",
  "tokio",
  "toml",
  "twilight-gateway",
