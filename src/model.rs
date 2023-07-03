@@ -12,6 +12,8 @@ use twilight_model::channel::message::Message;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 use twilight_model::id::Id;
 
+mod message;
+
 use crate::file;
 
 #[derive(Debug)]
