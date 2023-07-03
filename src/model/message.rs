@@ -9,7 +9,7 @@ pub struct Message {
 }
 
 #[derive(PartialEq, Eq)]
-pub enum Unit {
+enum Unit {
     Word(String),
     Link(String),
 }
