@@ -43,13 +43,50 @@ impl Iterator for ParseLinkSpans {
 
 struct ParseWords(String);
 
+fn parse_word(s: &str) -> (Option<String>, &str) {
+    if s.is_empty() {
+        return (None, "");
+    }
+
+    let (split_by_whitespace, remainder) = s.split_once(char::is_whitespace).unwrap_or((s, ""));
+
+    fn punct(c: char) -> bool {
+        c.is_ascii_punctuation() && c != '\''
+    }
+
+    let trim_punct = split_by_whitespace.trim_start_matches(punct);
+    let bare = trim_punct
+        .split_once(punct)
+        .map(|(w, _)| w)
+        .unwrap_or(trim_punct);
+
+    if bare.is_empty() {
+        return parse_word(remainder);
+    }
+
+    let word = bare
+        .chars()
+        .filter(|&c| c != '\'')
+        .flat_map(|c| c.to_lowercase())
+        .collect::<String>();
+
+    (Some(word), remainder)
+}
+
 impl Iterator for ParseWords {
     type Item = Unit;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.split_once(|c: char| c.is_whitespace());
-
-        todo!()
+        if self.0.is_empty() {
+            None
+        } else {
+            let (word, remainder) = parse_word(self.0.as_str());
+            let remainder = remainder.to_string();
+            word.map(|u| {
+                self.0 = remainder;
+                Unit::Word(u)
+            })
+        }
     }
 }
 
