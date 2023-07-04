@@ -90,10 +90,8 @@ impl Iterator for ParseWords {
     }
 }
 
-impl FromStr for Message {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl From<&str> for Message {
+    fn from(s: &str) -> Self {
         // split string by links
         let split_by_link = linkify::LinkFinder::new()
             .url_must_have_scheme(true)
@@ -101,8 +99,19 @@ impl FromStr for Message {
 
         let r = split_by_link.flat_map(ParseLinkSpans::from);
 
-        Ok(Self {
+        Self {
             units: r.collect_vec(),
-        })
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Message;
+
+    #[test]
+    fn basic() {
+        let m = Message::from("gif at: https://tenor.com !!!!!!11!!1!");
+        println!("{m:?}")
     }
 }
