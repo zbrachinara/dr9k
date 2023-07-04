@@ -3,12 +3,12 @@ use std::str::FromStr;
 use itertools::Itertools;
 use linkify::Span;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Message {
     units: Vec<Unit>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 enum Unit {
     Word(String),
     Link(String),
