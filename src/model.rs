@@ -50,6 +50,13 @@ impl<'a> From<&'a Message> for MessageMeta {
     }
 }
 
+impl MessageMeta {
+    fn update(&mut self, message: &Message) {
+        self.originals.push(message.content.clone());
+        self.timestamp = message.timestamp.as_micros();
+    }
+}
+
 type GuildsMap = HashMap<Id<GuildMarker>, Mutex<GuildMeta>>;
 #[derive(Default, Clone)]
 pub struct MessageModel {
@@ -209,19 +216,21 @@ impl MessageModel {
             return Ok(MessageAccepted::Bot);
         }
 
-        let content = message.content.clone();
-        if_chain::if_chain! {
-            if let Some(meta) = guild_info.messages.insert(
-                content.as_str().into(),
-                message.into()
-            );
-            if Utc::now().timestamp_micros() < guild_info.ttl + meta.timestamp;
-            then {
-                Err(MessageRejected::Text)
-            } else {
-                Ok(MessageAccepted::Nominal)
-            }
+        let mut check_timestamp = false;
+        let ttl = guild_info.ttl;
+        let meta = guild_info
+            .messages
+            .entry(message.content.as_str().into())
+            .and_modify(|meta| {
+                meta.update(message);
+                check_timestamp = true;
+            })
+            .or_insert_with(|| MessageMeta::from(message));
+
+        if check_timestamp && Utc::now().timestamp_micros() < ttl + meta.timestamp {
+            return Err(MessageRejected::Text);
         }
+        Ok(MessageAccepted::Nominal)
     }
 
     pub async fn toggle_monitor(&self, guild: Id<GuildMarker>, channel: Id<ChannelMarker>) -> bool {
