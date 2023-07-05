@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{iter::FlatMap, str::Split};
 
 use itertools::Itertools;
 use linkify::Span;
@@ -16,7 +16,7 @@ enum Unit {
 
 enum ParseLinkSpans {
     Link(String),
-    Words(ParseWords),
+    Words(ParseWordsOwned),
 }
 
 impl<'a> From<Span<'a>> for ParseLinkSpans {
@@ -25,7 +25,7 @@ impl<'a> From<Span<'a>> for ParseLinkSpans {
         if value.kind().is_some() {
             Self::Link(string)
         } else {
-            Self::Words(ParseWords(string))
+            Self::Words(string.into())
         }
     }
 }
@@ -41,52 +41,52 @@ impl Iterator for ParseLinkSpans {
     }
 }
 
-struct ParseWords(String);
-
-fn parse_word(s: &str) -> (Option<String>, &str) {
-    if s.is_empty() {
-        return (None, "");
+self_cell::self_cell! {
+    struct ParseWordsOwned {
+        owner: String,
+        #[not_covariant]
+        dependent: ParseWords,
     }
-
-    let (split_by_whitespace, remainder) = s.split_once(char::is_whitespace).unwrap_or((s, ""));
-
-    fn punct(c: char) -> bool {
-        c.is_ascii_punctuation() && c != '\''
-    }
-
-    let trim_punct = split_by_whitespace.trim_start_matches(punct);
-    let bare = trim_punct
-        .split_once(punct)
-        .map(|(w, _)| w)
-        .unwrap_or(trim_punct);
-
-    if bare.is_empty() {
-        return parse_word(remainder);
-    }
-
-    let word = bare
-        .chars()
-        .filter(|&c| c != '\'')
-        .flat_map(|c| c.to_lowercase())
-        .collect::<String>();
-
-    (Some(word), remainder)
 }
 
-impl Iterator for ParseWords {
+impl From<String> for ParseWordsOwned {
+    fn from(string: String) -> Self {
+        fn pattern(c: char) -> bool {
+            (c.is_ascii_punctuation() && c != '\'') || c.is_whitespace()
+        }
+
+        fn process_word(s: &str) -> Option<String> {
+            if s.is_empty() {
+                None
+            } else {
+                Some(
+                    s.chars()
+                        .filter(|&c| c != '\'')
+                        .flat_map(char::to_lowercase)
+                        .collect::<String>(),
+                )
+            }
+        }
+
+        Self::new(string, |string| {
+            ParseWords(
+                string
+                    .split(pattern as FilterFn)
+                    .flat_map(process_word as FlattenFn),
+            )
+        })
+    }
+}
+
+type FilterFn = fn(char) -> bool;
+type FlattenFn = fn(&str) -> Option<String>;
+struct ParseWords<'a>(FlatMap<Split<'a, FilterFn>, Option<String>, FlattenFn>);
+
+impl Iterator for ParseWordsOwned {
     type Item = Unit;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.0.is_empty() {
-            None
-        } else {
-            let (word, remainder) = parse_word(self.0.as_str());
-            let remainder = remainder.to_string();
-            word.map(|u| {
-                self.0 = remainder;
-                Unit::Word(u)
-            })
-        }
+        self.with_dependent_mut(|_, de| de.0.next()).map(Unit::Word)
     }
 }
 
