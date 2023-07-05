@@ -38,12 +38,14 @@ pub enum MessageAccepted {
 #[derive(Serialize, Deserialize, Debug)]
 struct MessageMeta {
     timestamp: i64,
+    originals: Vec<String>,
 }
 
 impl<'a> From<&'a Message> for MessageMeta {
     fn from(value: &'a Message) -> Self {
         Self {
             timestamp: value.timestamp.as_micros(),
+            originals: vec![value.content.clone()],
         }
     }
 }
@@ -56,7 +58,7 @@ pub struct MessageModel {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct GuildMeta {
-    messages: HashMap<String, MessageMeta>,
+    messages: HashMap<message::Message, MessageMeta>,
     monitored_channels: HashSet<Id<ChannelMarker>>,
     /// Amount of time a message will be guarded against
     ttl: i64,
@@ -209,7 +211,10 @@ impl MessageModel {
 
         let content = message.content.clone();
         if_chain::if_chain! {
-            if let Some(meta) = guild_info.messages.insert(content, message.into());
+            if let Some(meta) = guild_info.messages.insert(
+                content.as_str().into(),
+                message.into()
+            );
             if Utc::now().timestamp_micros() < guild_info.ttl + meta.timestamp;
             then {
                 Err(MessageRejected::Text)

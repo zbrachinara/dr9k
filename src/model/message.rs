@@ -2,13 +2,14 @@ use std::{iter::FlatMap, str::Split};
 
 use itertools::Itertools;
 use linkify::Span;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct Message {
     units: Vec<Unit>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
 enum Unit {
     Word(String),
     Link(String),
