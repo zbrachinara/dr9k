@@ -109,9 +109,25 @@ impl From<&str> for Message {
 mod tests {
     use super::Message;
 
+    macro_rules! w {
+        ($s:expr) => {
+            super::Unit::Word($s.to_string())
+        };
+    }
+
     #[test]
     fn basic() {
-        let m = Message::from("gif at: https://tenor.com !!!!!!11!!1!");
-        println!("{m:?}")
+        assert_eq!(
+            Message::from("a,    b,   c, and   d and    \t e").units,
+            vec![
+                w!("a"),
+                w!("b"),
+                w!("c"),
+                w!("and"),
+                w!("d"),
+                w!("and"),
+                w!("e")
+            ]
+        );
     }
 }
